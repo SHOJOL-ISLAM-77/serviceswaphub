@@ -29,6 +29,7 @@ async function run() {
     // start
 
     const servicesCollection = client.db("serviceDB").collection("services");
+    const bookingCollection = client.db("serviceDB").collection("booking")
 
     app.post("/api/v1/add-services", async (req, res) => {
       const services = req.body;
@@ -55,6 +56,16 @@ async function run() {
       const result = await servicesCollection.findOne(query);
       res.send(result);
     });
+
+
+    app.post("/api/v1/book-services", async (req, res) => {
+      const services = req.body;
+      // console.log(services);
+      const result = await bookingCollection.insertOne(services);
+      res.send(result);
+    });
+
+    
 
     // Send a ping to confirm a successful connection
 
