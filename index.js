@@ -1,5 +1,5 @@
 const express = require("express");
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
 const cors = require("cors");
 const app = express();
@@ -37,8 +37,22 @@ async function run() {
       res.send(result);
     });
 
+    app.get("/api/v1/get-services-for-home", async (req, res) => {
+      const result = await servicesCollection.find().limit(4).toArray();
+      res.send(result);
+    });
     app.get("/api/v1/get-services", async (req, res) => {
-      const result = await servicesCollection.find().limit(6).toArray();
+      const result = await servicesCollection.find().toArray();
+      res.send(result);
+    });
+
+    
+    app.get("/api/v1/get-serviceDetails/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = {
+        _id: new ObjectId(id),
+      };
+      const result = await servicesCollection.findOne(query);
       res.send(result);
     });
 
