@@ -75,6 +75,20 @@ async function run() {
       res.send(result);
     });
 
+    app.get("/api/v1/get-my-pending-services", async (req, res) => {
+      query = { serviceProviderEmail: req.query.email };
+      const result = await bookingCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    app.get("/api/v1/get-serviceDetails-bottom", async (req, res) => {
+      query = { yourEmail: req.query.email };
+      const result = await servicesCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    // /api/v1/get-serviceDetails-bottom
+
     app.delete("/api/v1/delete-service/:id", async (req, res) => {
       const id = req.params.id;
       const query = {
@@ -113,6 +127,27 @@ async function run() {
         },
       };
       const result = await servicesCollection.updateOne(
+        filter,
+        updateProduct,
+        options
+      );
+      res.send(result);
+    });
+
+    app.patch("/api/v1/update-pending-work/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = {
+        _id: new ObjectId(id),
+      };
+      const data = req.body;
+      const options = { upsert: true };
+
+      const updateProduct = {
+        $set: {
+          status: data.selectValue
+        },
+      };
+      const result = await bookingCollection.updateOne(
         filter,
         updateProduct,
         options
