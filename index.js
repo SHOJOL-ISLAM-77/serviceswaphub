@@ -29,7 +29,7 @@ async function run() {
     // start
 
     const servicesCollection = client.db("serviceDB").collection("services");
-    const bookingCollection = client.db("serviceDB").collection("booking")
+    const bookingCollection = client.db("serviceDB").collection("booking");
 
     app.post("/api/v1/add-services", async (req, res) => {
       const services = req.body;
@@ -47,7 +47,6 @@ async function run() {
       res.send(result);
     });
 
-    
     app.get("/api/v1/get-serviceDetails/:id", async (req, res) => {
       const id = req.params.id;
       const query = {
@@ -57,7 +56,6 @@ async function run() {
       res.send(result);
     });
 
-
     app.post("/api/v1/book-services", async (req, res) => {
       const services = req.body;
       // console.log(services);
@@ -65,9 +63,47 @@ async function run() {
       res.send(result);
     });
 
-    
+    app.get("/api/v1/get-my-services", async (req, res) => {
+      query = { yourEmail: req.query.email };
+      const result = await servicesCollection.find(query).toArray();
+      res.send(result);
+    });
 
-    // Send a ping to confirm a successful connection
+    app.delete("/api/v1/delete-service/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = {
+        _id: new ObjectId(id),
+      };
+      const result = await bookingCollection.deleteOne(query);
+      res.send(result);
+    });
+
+    app.put("/api/v1/update-my-services/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = {
+        _id: new ObjectId(id),
+      };
+      const data = req.body;
+      const options = { upsert: true };
+
+      const updateProduct = {
+        $set: {
+          serviceImage: data.serviceImage,
+          serviceName: data.serviceName,
+          yourName: data.yourName,
+          price: data.price,
+          serviceArea: data.serviceArea,
+          description: data.description,
+          photo: data.photo,
+        },
+      };
+      const result = await servicesCollection.updateOne(
+        filter,
+        updateProduct,
+        options
+      );
+      res.send(result);
+    });
 
     await client.db("admin").command({ ping: 1 });
     console.log(
