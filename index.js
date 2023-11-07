@@ -69,7 +69,22 @@ async function run() {
       res.send(result);
     });
 
+    app.get("/api/v1/get-my-booking-services", async (req, res) => {
+      query = { userEmail: req.query.email };
+      const result = await bookingCollection.find(query).toArray();
+      res.send(result);
+    });
+
     app.delete("/api/v1/delete-service/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = {
+        _id: new ObjectId(id),
+      };
+      const result = await servicesCollection.deleteOne(query);
+      res.send(result);
+    });
+
+    app.delete("/api/v1/delete-booking-service/:id", async (req, res) => {
       const id = req.params.id;
       const query = {
         _id: new ObjectId(id),
