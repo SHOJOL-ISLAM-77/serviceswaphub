@@ -1,5 +1,7 @@
 const express = require("express");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+const jwt = require("jsonwebtoken");
+const cookieParser = require("cookie-parser");
 require("dotenv").config();
 const cors = require("cors");
 const app = express();
@@ -7,8 +9,30 @@ const port = process.PORT || 7000;
 
 // MIDDLEWARE
 
-app.use(cors());
+app.use(
+  cors({
+    origin: ["http://localhost:5173"],
+    credentials: true,
+  })
+);
 app.use(express.json());
+app.use(cookieParser());
+
+const tokenVerify = async (req, res, next) => {
+  const token = req.cookies?.token;
+  console.log("verify token in the middleware", token);
+  if (!token) {
+    return res.status(401).send({ massage: "not authorized" });
+  }
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+    if (err) {
+      return res.status(401).send({ massage: "unauthorized" });
+    }
+    console.log(decoded);
+    req.user = decoded;
+    next();
+  });
+};
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.u6ptml9.mongodb.net/?retryWrites=true&w=majority`;
 
@@ -31,6 +55,23 @@ async function run() {
     const servicesCollection = client.db("serviceDB").collection("services");
     const bookingCollection = client.db("serviceDB").collection("booking");
 
+    app.post("/api/v1/jwt", async (req, res) => {
+      const user = req.body;
+      console.log(user);
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
+        expiresIn: "1h",
+      });
+      res
+        .cookie("token", token, {
+          httpOnly: true,
+          secure: false,
+        })
+        .send({ success: true });
+    });
+
+
+
+
     app.post("/api/v1/add-services", async (req, res) => {
       const services = req.body;
       // console.log(services);
@@ -39,6 +80,7 @@ async function run() {
     });
 
     app.get("/api/v1/get-services-for-home", async (req, res) => {
+      // console.log(req.cookies.token);
       const result = await servicesCollection.find().limit(4).toArray();
       res.send(result);
     });
@@ -63,8 +105,13 @@ async function run() {
       res.send(result);
     });
 
-    app.get("/api/v1/get-my-services", async (req, res) => {
+    app.get("/api/v1/get-my-services", tokenVerify, async (req, res) => {
       query = { yourEmail: req.query.email };
+
+      console.log("from valid user", req.user);
+      if (req.query.email !== req.user.email) {
+        return res.status(403).send({massage: 'forbidden access'})
+      }
       const result = await servicesCollection.find(query).toArray();
       res.send(result);
     });
@@ -144,7 +191,7 @@ async function run() {
 
       const updateProduct = {
         $set: {
-          status: data.selectValue
+          status: data.selectValue,
         },
       };
       const result = await bookingCollection.updateOne(
@@ -154,6 +201,7 @@ async function run() {
       );
       res.send(result);
     });
+
 
     await client.db("admin").command({ ping: 1 });
     console.log(
