@@ -11,7 +11,11 @@ const port = process.PORT || 7000;
 
 app.use(
   cors({
-    origin: ["http://localhost:5173"],
+    origin: [
+      "http://localhost:5173",
+      "https://serviceswaphub.web.app",
+      "https://serviceswaphub.firebaseapp.com",
+    ],
     credentials: true,
   })
 );
@@ -48,7 +52,7 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+    // await client.connect();
 
     // start
 
@@ -59,18 +63,21 @@ async function run() {
       const user = req.body;
       console.log(user);
       const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
-        expiresIn: "1h",
+        expiresIn: "5h",
       });
       res
         .cookie("token", token, {
           httpOnly: true,
-          secure: false,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
         })
         .send({ success: true });
     });
 
-
-
+    app.post("/api/v1/user-logout", async (req, res) => {
+      const user = req.body;
+      res.clearCookie("token", { maxAge: 0 }).send({ success: true });
+    });
 
     app.post("/api/v1/add-services", async (req, res) => {
       const services = req.body;
@@ -80,7 +87,7 @@ async function run() {
     });
 
     app.get("/api/v1/get-services-for-home", async (req, res) => {
-      // console.log(req.cookies.token);
+      console.log(req.cookies.token);
       const result = await servicesCollection.find().limit(4).toArray();
       res.send(result);
     });
@@ -105,31 +112,32 @@ async function run() {
       res.send(result);
     });
 
-    app.get("/api/v1/get-my-services", tokenVerify, async (req, res) => {
+    app.get("/api/v1/get-my-services",  async (req, res) => {
       query = { yourEmail: req.query.email };
-
-      console.log("from valid user", req.user);
-      if (req.query.email !== req.user.email) {
-        return res.status(403).send({massage: 'forbidden access'})
-      }
+      // if (req.user.email !== req.query.email) {
+      //   return res.status(403).send({ massage: "forbidden access" });
+      // }
       const result = await servicesCollection.find(query).toArray();
       res.send(result);
     });
 
     app.get("/api/v1/get-my-booking-services", async (req, res) => {
       query = { userEmail: req.query.email };
+
       const result = await bookingCollection.find(query).toArray();
       res.send(result);
     });
 
     app.get("/api/v1/get-my-pending-services", async (req, res) => {
       query = { serviceProviderEmail: req.query.email };
+
       const result = await bookingCollection.find(query).toArray();
       res.send(result);
     });
 
     app.get("/api/v1/get-serviceDetails-bottom", async (req, res) => {
       query = { yourEmail: req.query.email };
+
       const result = await servicesCollection.find(query).toArray();
       res.send(result);
     });
@@ -181,7 +189,7 @@ async function run() {
       res.send(result);
     });
 
-    app.patch("/api/v1/update-pending-work/:id", async (req, res) => {
+    app.put("/api/v1/update-pending-work/:id", async (req, res) => {
       const id = req.params.id;
       const filter = {
         _id: new ObjectId(id),
@@ -202,11 +210,10 @@ async function run() {
       res.send(result);
     });
 
-
-    await client.db("admin").command({ ping: 1 });
-    console.log(
-      "Pinged your deployment. You successfully connected to MongoDB!"
-    );
+    // await client.db("admin").command({ ping: 1 });
+    // console.log(
+    //   "Pinged your deployment. You successfully connected to MongoDB!"
+    // );
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
