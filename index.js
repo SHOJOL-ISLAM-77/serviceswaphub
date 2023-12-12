@@ -58,6 +58,23 @@ async function run() {
 
     const servicesCollection = client.db("serviceDB").collection("services");
     const bookingCollection = client.db("serviceDB").collection("booking");
+    const reviewCollection = client.db("serviceDB").collection("reviews");
+
+// review related api 
+
+app.get("/api/v1/reviews", async(req, res) =>{
+  const result = await reviewCollection.find().sort({ _id: -1 }).limit(6).toArray();
+  res.send(result);
+})
+
+app.post("/api/v1/review-posts", async(req, res) =>{
+  const review = req.body;
+  console.log(review);
+  const result = await reviewCollection.insertOne(review);
+  res.send(result);
+})
+
+// jwt related api
 
     app.post("/api/v1/jwt", async (req, res) => {
       const user = req.body;
@@ -210,10 +227,10 @@ async function run() {
       res.send(result);
     });
 
-    // await client.db("admin").command({ ping: 1 });
-    // console.log(
-    //   "Pinged your deployment. You successfully connected to MongoDB!"
-    // );
+    await client.db("admin").command({ ping: 1 });
+    console.log(
+      "Pinged your deployment. You successfully connected to MongoDB!"
+    );
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
